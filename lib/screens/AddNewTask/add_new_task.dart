@@ -52,6 +52,8 @@ class _AddNewTaskState extends State<AddNewTask> {
       // Load base URL from .env
       final baseUrl = dotenv.env['API_BASE_URL'];
 
+      print(baseUrl);
+
       if (baseUrl != null) {
         try {
           final response = await http.post(

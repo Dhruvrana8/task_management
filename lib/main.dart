@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:task_management/constants/colors.dart';
 import 'package:task_management/screens/AddNewTask/add_new_task.dart';
 import 'package:task_management/screens/HomeScreen/home_screen.dart';
 
-void main() {
+Future main() async {
+  await dotenv.load(fileName: ".env");
   runApp(const MyApp());
 }
 
