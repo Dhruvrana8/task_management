@@ -1,6 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
 import 'package:task_management/constants/colors.dart';
+import 'package:task_management/screens/AddNewTask/urls.dart';
 import './strings.dart';
 
 class AddNewTask extends StatefulWidget {
@@ -11,39 +16,72 @@ class AddNewTask extends StatefulWidget {
 }
 
 class _AddNewTaskState extends State<AddNewTask> {
-  final TextEditingController _controllerTitle = TextEditingController();
-  final TextEditingController _controllerDescription = TextEditingController();
-  final int _wordLimit = 500;
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final int _descriptionLimit = 500;
   int _wordCount = 0;
   final _formKey = GlobalKey<FormState>();
 
   void _updateWordCount() {
     setState(() {
-      _wordCount = _controllerDescription.text.length;
+      _wordCount = _descriptionController.text.length;
     });
   }
 
   @override
   void initState() {
     super.initState();
-    _controllerDescription.addListener(_updateWordCount);
+    _descriptionController.addListener(_updateWordCount);
   }
 
   @override
   void dispose() {
-    _controllerDescription.removeListener(_updateWordCount);
-    _controllerDescription.dispose();
+    _descriptionController.removeListener(_updateWordCount);
+    _descriptionController.dispose();
     super.dispose();
   }
 
-  void _saveTask() {
+  Future<void> _saveTask() async {
     if (_formKey.currentState?.validate() ?? false) {
-      // Perform save operation
-      // For example, save to a database or call an API
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Task Saved')),
-      );
-      Navigator.pop(context);
+      // API request payload
+      final taskData = {
+        'task_title': _titleController.text,
+        'task_description': _descriptionController.text,
+      };
+
+      // Load base URL from .env
+      final baseUrl = dotenv.env['API_BASE_URL'];
+
+      if (baseUrl != null) {
+        try {
+          final response = await http.post(
+            Uri.parse('${baseUrl}/${Urls.addTask}'),
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode(taskData),
+          );
+
+          if (response.statusCode == 201) {
+            // Success
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Task Saved Successfully')),
+            );
+          } else {
+            // Error
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Failed to save task')),
+            );
+          }
+        } catch (e) {
+          // Exception
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('API base URL not found')),
+        );
+      }
     }
   }
 
@@ -77,7 +115,7 @@ class _AddNewTaskState extends State<AddNewTask> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     TextFormField(
-                      controller: _controllerTitle,
+                      controller: _titleController,
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
                         hintText: strings.titleHint,
@@ -95,7 +133,7 @@ class _AddNewTaskState extends State<AddNewTask> {
                       height: 10,
                     ),
                     TextFormField(
-                      controller: _controllerDescription,
+                      controller: _descriptionController,
                       maxLines: 10,
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
@@ -104,7 +142,7 @@ class _AddNewTaskState extends State<AddNewTask> {
                         floatingLabelBehavior: FloatingLabelBehavior.always,
                       ),
                       inputFormatters: [
-                        LengthLimitingTextInputFormatter(_wordLimit),
+                        LengthLimitingTextInputFormatter(_descriptionLimit),
                       ],
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -114,9 +152,9 @@ class _AddNewTaskState extends State<AddNewTask> {
                       },
                     ),
                     Text(
-                      '$_wordCount / $_wordLimit',
+                      '$_wordCount / $_descriptionLimit',
                       style: TextStyle(
-                        color: _wordCount > _wordLimit
+                        color: _wordCount > _descriptionLimit
                             ? CustomColors.danger
                             : CustomColors.darkGreen,
                       ),
