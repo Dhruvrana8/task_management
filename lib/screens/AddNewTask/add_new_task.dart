@@ -65,8 +65,17 @@ class _AddNewTaskState extends State<AddNewTask> {
           if (response.statusCode == 201) {
             // Success
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Task Saved Successfully')),
+              const SnackBar(
+                content: Text(
+                  'Task Saved Successfully',
+                  style: TextStyle(
+                    color: CustomColors.primary,
+                  ),
+                ),
+                backgroundColor: CustomColors.secondary,
+              ),
             );
+            Navigator.pop(context);
           } else {
             // Error
             ScaffoldMessenger.of(context).showSnackBar(

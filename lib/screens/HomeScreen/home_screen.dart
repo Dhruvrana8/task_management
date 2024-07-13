@@ -18,8 +18,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late Future<TaskList?> data;
-  var nextPage = null;
+  late List<Result?>? data = [];
+  dynamic nextPage = null;
+  bool isFetching = false;
 
   @override
   void initState() {
@@ -27,21 +28,23 @@ class _HomeScreenState extends State<HomeScreen> {
     fetchTasks(1);
   }
 
-  void fetchTasks(pageNumber) {
-    fetchTask(context, pageNumber).then((taskList) {
+  void fetchTasks(int pageNumber) {
+    fetchTask(context, pageNumber).then((response) {
+      print(response);
       setState(() {
-        if (taskList != null) {
-          print(taskList.next);
-          nextPage = taskList.next;
-          data = Future.value(taskList);
+        if (response != null) {
+          nextPage = response.next == Null ? null : response.next;
+          print("This is the response ${response.results}");
+          data?..addAll(response.results ?? []);
         } else {
           print("Failed to fetch tasks");
         }
+        isFetching = false;
       });
     }).catchError((error) {
       setState(() {
         print("Failed to load tasks: $error");
-        data = Future.error(error);
+        data = error;
       });
     });
   }
@@ -53,8 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Uri.parse(
             '${baseUrl}/${Urls.getTask}?${pageNumber != null ? 'page=$pageNumber' : ''}'),
       );
-
-      if (response.statusCode == 200) {
+      if (response.statusCode >= 200 && response.statusCode <= 300) {
         // If the server did return a 200 OK response,
         // then parse the JSON.
         return TaskList.fromJson(
@@ -62,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
       } else {
         // If the server did not return a 200 OK response,
         // then throw an exception.
-        throw Exception('Failed to load album');
+        throw Exception('Failed to load task');
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -74,7 +76,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _handleRefresh() async {
     // Simulate network fetch or database query
-    fetchTasks(nextPage);
+    setState(() {
+      nextPage = 1;
+      data = []; // Clear the existing data
+    });
+    fetchTasks(1);
   }
 
   @override
@@ -108,42 +114,40 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       body: Center(
-        child: FutureBuilder<TaskList?>(
-          future: data,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return CircularProgressIndicator();
-            } else if (snapshot.hasError) {
-              return Text('Error: ${snapshot.error}');
-            } else if (snapshot.hasData && snapshot.data != null) {
-              final taskList = snapshot.data!;
-              return NotificationListener<ScrollNotification>(
+        child: data == null
+            ? Text(
+                "Please add a task",
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              )
+            : NotificationListener<ScrollNotification>(
                 onNotification: (ScrollNotification scrollInfo) {
                   if (scrollInfo.metrics.pixels ==
-                      scrollInfo.metrics.maxScrollExtent) {
-                    _handleRefresh();
+                          scrollInfo.metrics.maxScrollExtent &&
+                      !isFetching) {
+                    setState(() {
+                      isFetching = true;
+                    });
+                    fetchTasks(nextPage);
                   }
                   return false;
                 },
                 child: RefreshIndicator(
                   onRefresh: _handleRefresh,
                   child: ListView.builder(
-                    itemCount: taskList.results?.length ?? 0,
+                    itemCount: data?.length ?? 0,
                     itemBuilder: (context, index) {
-                      final task = taskList.results![index];
+                      final task = data![index];
                       return Taskcard(
-                        title: task.taskTitle ?? 'No Title',
-                        description: task.taskDescription ?? 'No Description',
+                        title: task?.taskTitle ?? 'No Title',
+                        description: task?.taskDescription ?? 'No Description',
                       );
                     },
                   ),
                 ),
-              );
-            } else {
-              return Text(strings.noData);
-            }
-          },
-        ),
+              ),
       ),
     );
   }
