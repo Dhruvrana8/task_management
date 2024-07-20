@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:task_management/constants/colors.dart';
@@ -19,37 +18,39 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late List<Result?>? data = [];
-  dynamic nextPage = null;
+  dynamic nextPage = 1;
   bool isFetching = false;
 
   @override
   void initState() {
     super.initState();
-    fetchTasks(1);
+    fetchTasks(nextPage);
   }
 
   void fetchTasks(int pageNumber) {
-    fetchTask(context, pageNumber).then((response) {
-      print(response);
-      setState(() {
-        if (response != null) {
-          nextPage = response.next == Null ? null : response.next;
-          print("This is the response ${response.results}");
-          data?..addAll(response.results ?? []);
-        } else {
-          print("Failed to fetch tasks");
-        }
-        isFetching = false;
+    if (nextPage) {
+      fetchTask(context, pageNumber).then((response) {
+        print(response);
+        setState(() {
+          if (response != null) {
+            nextPage = response.next == null ? null : response.next;
+            data?..addAll(response.results ?? []);
+            nextPage = response?.next ?? null;
+          } else {
+            print("Failed to fetch tasks");
+          }
+          isFetching = false;
+        });
+      }).catchError((error) {
+        setState(() {
+          print("Failed to load tasks: $error");
+          data = error;
+        });
       });
-    }).catchError((error) {
-      setState(() {
-        print("Failed to load tasks: $error");
-        data = error;
-      });
-    });
+    }
   }
 
-  Future<TaskList?> fetchTask(BuildContext context, pageNumber) async {
+  Future<TaskList?> fetchTask(BuildContext context, int pageNumber) async {
     final baseUrl = dotenv.env['API_BASE_URL'];
     if (baseUrl != null) {
       final response = await http.get(
@@ -80,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
       nextPage = 1;
       data = []; // Clear the existing data
     });
-    fetchTasks(1);
+    fetchTasks(nextPage);
   }
 
   @override
@@ -99,11 +100,11 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: CustomColors.secondary,
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => {
+        onPressed: () {
           Navigator.pushNamed(
             context,
             '/addNewTask',
-          ),
+          );
         },
         backgroundColor: CustomColors.secondary,
         elevation: 5,
@@ -116,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Center(
         child: data == null
             ? Text(
-                "Please add a task",
+                strings.emptyScreen,
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -130,7 +131,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     setState(() {
                       isFetching = true;
                     });
-                    fetchTasks(nextPage);
+                    if (nextPage) fetchTasks(nextPage);
                   }
                   return false;
                 },
@@ -141,8 +142,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     itemBuilder: (context, index) {
                       final task = data![index];
                       return Taskcard(
-                        title: task?.taskTitle ?? 'No Title',
-                        description: task?.taskDescription ?? 'No Description',
+                        title: task?.taskTitle ?? strings.title,
+                        description:
+                            task?.taskDescription ?? strings.description,
+                        id: task?.id ?? 0,
+                        isCompleted: task?.isCompleted ?? false,
                       );
                     },
                   ),
