@@ -113,7 +113,13 @@ class _EditTaskState extends State<EditTask> {
         case 'Complete':
           taskData = {
             'id': id,
-            'is_completed': isCompleted,
+            'is_completed': true,
+          };
+          break;
+        case 'Pending':
+          taskData = {
+            'id': id,
+            'is_completed': false,
           };
           break;
         case 'Edit':
@@ -265,9 +271,12 @@ class _EditTaskState extends State<EditTask> {
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
                             CustomButton(
-                              onPress: () => _onedtit('Complete'),
+                              onPress: () => _onedtit(
+                                  isCompleted ? 'Pending' : 'Complete'),
                               withSideBorder: true,
-                              title: strings.completed,
+                              title: isCompleted
+                                  ? strings.pending
+                                  : strings.completed,
                             ),
                             CustomButton(
                               onPress: () => _onedtit('Edit'),

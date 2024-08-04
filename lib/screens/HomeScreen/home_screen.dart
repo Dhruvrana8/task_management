@@ -133,7 +133,6 @@ class _HomeScreenState extends State<HomeScreen>
               context,
               '/addNewTask',
             ).then((_) {
-              print("I am called");
               setState(() {
                 isCompletedTask = _tabController.index == 0;
               });
@@ -193,7 +192,6 @@ class _HomeScreenState extends State<HomeScreen>
                       id: task?.id ?? 0,
                       isCompleted: task?.isCompleted ?? false,
                       function: () {
-                        print("I am called");
                         setState(() {
                           isCompletedTask = _tabController.index == 0;
                         });

@@ -172,21 +172,28 @@ class _AddNewTaskState extends State<AddNewTask> {
                     ),
                   ],
                 ),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _saveTask,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: CustomColors.secondary,
-                    ),
-                    child: const Padding(
-                      padding: EdgeInsets.all(10.0),
-                      child: Text(
-                        strings.save,
-                        style: TextStyle(fontSize: 18),
+                Column(
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _saveTask,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: CustomColors.secondary,
+                        ),
+                        child: const Padding(
+                          padding: EdgeInsets.all(10.0),
+                          child: Text(
+                            strings.save,
+                            style: TextStyle(fontSize: 18),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    SizedBox(
+                      height: 20,
+                    )
+                  ],
                 ),
               ],
             ),

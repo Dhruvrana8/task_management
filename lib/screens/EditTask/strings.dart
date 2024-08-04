@@ -7,4 +7,5 @@ class strings {
   static const task = "Task";
   static const taskHint = "Enter the task description";
   static const completed = "Completed";
+  static const pending = "Pending";
 }
