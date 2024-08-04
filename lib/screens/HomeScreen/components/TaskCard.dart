@@ -6,6 +6,7 @@ class Taskcard extends StatelessWidget {
   final String description;
   final int id;
   final bool isCompleted;
+  final function;
 
   const Taskcard({
     super.key,
@@ -13,6 +14,7 @@ class Taskcard extends StatelessWidget {
     required this.description,
     required this.id,
     required this.isCompleted,
+    this.function,
   });
 
   @override
@@ -25,7 +27,10 @@ class Taskcard extends StatelessWidget {
             elevation: 5,
             child: InkWell(
               onTap: () {
-                Navigator.pushNamed(context, '/editTask', arguments: id);
+                Navigator.pushNamed(context, '/editTask', arguments: id)
+                    .then((_) {
+                  function();
+                });
               },
               child: Container(
                 height: 150,

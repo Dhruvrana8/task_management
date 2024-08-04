@@ -149,7 +149,7 @@ class _EditTaskState extends State<EditTask> {
                 backgroundColor: CustomColors.secondary,
               ),
             );
-            Navigator.pop(context);
+            Navigator.pop(context, true);
           } else {
             // Error
             ScaffoldMessenger.of(context).showSnackBar(

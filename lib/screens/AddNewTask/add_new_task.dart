@@ -75,7 +75,7 @@ class _AddNewTaskState extends State<AddNewTask> {
                 backgroundColor: CustomColors.secondary,
               ),
             );
-            Navigator.pop(context);
+            Navigator.pop(context, true);
           } else {
             // Error
             ScaffoldMessenger.of(context).showSnackBar(

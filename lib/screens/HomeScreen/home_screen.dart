@@ -84,7 +84,6 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _handleRefresh() async {
-    print('Refreshing...');
     setState(() {
       nextPage = 1;
       data = []; // Clear the existing data
@@ -133,7 +132,13 @@ class _HomeScreenState extends State<HomeScreen>
             Navigator.pushNamed(
               context,
               '/addNewTask',
-            );
+            ).then((_) {
+              print("I am called");
+              setState(() {
+                isCompletedTask = _tabController.index == 0;
+              });
+              _handleRefresh();
+            });
           },
           backgroundColor: CustomColors.secondary,
           elevation: 5,
@@ -187,6 +192,13 @@ class _HomeScreenState extends State<HomeScreen>
                       description: task?.taskDescription ?? '',
                       id: task?.id ?? 0,
                       isCompleted: task?.isCompleted ?? false,
+                      function: () {
+                        print("I am called");
+                        setState(() {
+                          isCompletedTask = _tabController.index == 0;
+                        });
+                        _handleRefresh();
+                      },
                     );
                   },
                 ),
