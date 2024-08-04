@@ -16,21 +16,33 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   late List<Result?>? data = [];
   dynamic nextPage = 1;
+  bool isCompletedTask = false;
   bool isFetching = false;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
     fetchTasks(nextPage);
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_handleTabChange);
+    _handleRefresh();
+  }
+
+  void _handleTabChange() {
+    setState(() {
+      isCompletedTask = (_tabController.index == 0);
+    });
+    _handleRefresh();
   }
 
   void fetchTasks(int pageNumber) {
-    if (nextPage) {
+    if (nextPage != null) {
       fetchTask(context, pageNumber).then((response) {
-        print(response);
         setState(() {
           if (response != null) {
             nextPage = response.next == null ? null : response.next;
@@ -55,16 +67,12 @@ class _HomeScreenState extends State<HomeScreen> {
     if (baseUrl != null) {
       final response = await http.get(
         Uri.parse(
-            '${baseUrl}/${Urls.getTask}?${pageNumber != null ? 'page=$pageNumber' : ''}'),
+            '${baseUrl}/${Urls.getTask}?${pageNumber != null ? 'page=$pageNumber' : ''}&status_code=${isCompletedTask ? 'INCOMPLETE' : 'COMPLETED'}'),
       );
       if (response.statusCode >= 200 && response.statusCode <= 300) {
-        // If the server did return a 200 OK response,
-        // then parse the JSON.
         return TaskList.fromJson(
             jsonDecode(response.body) as Map<String, dynamic>);
       } else {
-        // If the server did not return a 200 OK response,
-        // then throw an exception.
         throw Exception('Failed to load task');
       }
     } else {
@@ -76,7 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _handleRefresh() async {
-    // Simulate network fetch or database query
+    print('Refreshing...');
     setState(() {
       nextPage = 1;
       data = []; // Clear the existing data
@@ -85,74 +93,105 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: CustomColors.whiteSmoky,
-      appBar: AppBar(
-        title: const Text(
-          AppStrings.appName,
-          style: TextStyle(
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: CustomColors.whiteSmoky,
+        appBar: AppBar(
+          bottom: TabBar(
+            controller: _tabController,
+            tabs: [
+              Tab(icon: Icon(Icons.pending)),
+              Tab(icon: Icon(Icons.done_all)),
+            ],
+            onTap: (value) {
+              setState(() {
+                isCompletedTask = value == 0;
+              });
+              _handleRefresh();
+            },
+          ),
+          title: const Text(
+            AppStrings.appName,
+            style: TextStyle(
+              color: CustomColors.primary,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          backgroundColor: CustomColors.secondary,
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            Navigator.pushNamed(
+              context,
+              '/addNewTask',
+            );
+          },
+          backgroundColor: CustomColors.secondary,
+          elevation: 5,
+          child: const Icon(
+            Icons.add,
+            size: 28,
             color: CustomColors.primary,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: CustomColors.secondary,
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(
-            context,
-            '/addNewTask',
-          );
-        },
-        backgroundColor: CustomColors.secondary,
-        elevation: 5,
-        child: const Icon(
-          Icons.add,
-          size: 28,
-          color: CustomColors.primary,
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            _buildTaskListView(),
+            _buildTaskListView(),
+          ],
         ),
       ),
-      body: Center(
-        child: data == null
-            ? Text(
-                strings.emptyScreen,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              )
-            : NotificationListener<ScrollNotification>(
-                onNotification: (ScrollNotification scrollInfo) {
-                  if (scrollInfo.metrics.pixels ==
-                          scrollInfo.metrics.maxScrollExtent &&
-                      !isFetching) {
-                    setState(() {
-                      isFetching = true;
-                    });
-                    if (nextPage) fetchTasks(nextPage);
-                  }
-                  return false;
-                },
-                child: RefreshIndicator(
-                  onRefresh: _handleRefresh,
-                  child: ListView.builder(
-                    itemCount: data?.length ?? 0,
-                    itemBuilder: (context, index) {
-                      final task = data![index];
-                      return Taskcard(
-                        title: task?.taskTitle ?? strings.title,
-                        description:
-                            task?.taskDescription ?? strings.description,
-                        id: task?.id ?? 0,
-                        isCompleted: task?.isCompleted ?? false,
-                      );
-                    },
-                  ),
+    );
+  }
+
+  Widget _buildTaskListView() {
+    return Center(
+      child: data == null
+          ? const Text(
+              strings.emptyScreen,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            )
+          : NotificationListener<ScrollNotification>(
+              onNotification: (ScrollNotification scrollInfo) {
+                if (scrollInfo.metrics.pixels ==
+                        scrollInfo.metrics.maxScrollExtent &&
+                    !isFetching) {
+                  setState(() {
+                    isFetching = true;
+                  });
+                  if (nextPage != null) fetchTasks(nextPage);
+                }
+                return false;
+              },
+              child: RefreshIndicator(
+                onRefresh: _handleRefresh,
+                child: ListView.builder(
+                  itemCount: data?.length ?? 0,
+                  itemBuilder: (context, index) {
+                    final task = data![index];
+                    return Taskcard(
+                      title: task?.taskTitle ?? '',
+                      description: task?.taskDescription ?? '',
+                      id: task?.id ?? 0,
+                      isCompleted: task?.isCompleted ?? false,
+                    );
+                  },
                 ),
               ),
-      ),
+            ),
     );
   }
 }
